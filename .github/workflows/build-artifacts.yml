@@ -1,0 +1,57 @@
+name: Generate PBF Glyphs Artifact
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libprotobuf-dev libutfcpp-dev
+          npm install fontnik
+
+      - name: Convert TTF to PBF
+        run: |
+          node -e '
+          const fontnik = require("fontnik");
+          const fs = require("fs");
+          const path = require("path");
+
+          const fontBuffer = fs.readFileSync("Vazirmatn-Black.ttf");
+          const outputDir = path.join("out_glyphs", "Vazirmatn-Black");
+
+          if (!fs.existsSync(outputDir)) {
+            fs.mkdirSync(outputDir, { recursive: true });
+          }
+
+          for (let i = 0; i < 65536; i += 256) {
+            const start = i;
+            const end = Math.min(i + 255, 65535);
+            fontnik.range({ font: fontBuffer, start, end }, (err, res) => {
+              if (err) throw err;
+              fs.writeFileSync(path.join(outputDir, `${start}-${end}.pbf`), res);
+            });
+          }
+          '
+
+      - name: Upload Glyphs as Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: my-map-glyphs
+          path: out_glyphs/
+          retention-days: 7
