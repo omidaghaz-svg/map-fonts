@@ -1,0 +1,42 @@
+name: Generate and Publish Map Glyphs
+
+on:
+  push:
+    branches:
+      - main # در صورت پوش کردن در شاخه اصلی، این اکشن اجرا می‌شود
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    
+    # دادن دسترسی برای نوشتن در مخزن جهت انتشار روی گیت‌هاب پیجز
+    permissions:
+      contents: write 
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install genfontgl
+        run: npm install -g genfontgl
+
+      - name: Create Output Directory
+        run: mkdir -p out_glyphs
+
+      - name: Convert TTF to PBF
+        # در این خط، فایل Vazirmatn.ttf تبدیل شده و در پوشه out_glyphs قرار می‌گیرد
+        # اگر نام فایل فونت شما چیز دیگری است، آن را جایگزین کنید
+        run: genfontgl Vazirmatn-Black.ttf out_glyphs/
+
+      - name: Deploy to GitHub Pages
+        uses: peaceiris/actions-gh-pages@v3
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./out_glyphs
+          # این فایل‌ها در شاخه‌ای به نام gh-pages قرار خواهند گرفت
+          publish_branch: gh-pages 
